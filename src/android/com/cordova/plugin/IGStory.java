@@ -32,37 +32,40 @@ public class IGStory extends CordovaPlugin {
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
     if (action.equals("shareToStory")) {
       PackageManager pm = this.cordova.getActivity().getBaseContext().getPackageManager();
-      if (isPackageInstalled("com.instagram.android", pm)) {
-        String backgroundImageUrl = args.getString(0);
-        String attributionLinkUrl = args.getString(1);
-        try {
-          Log.e(TAG, "WE HAVE A BACKGROUND");
-          File parentDir = this.webView.getContext().getExternalFilesDir(null);
-          File backgroundImageFile = File.createTempFile("instagramBackground", ".png", parentDir);
-          Log.e(TAG, backgroundImageUrl.toString());
-          URL backgroundURL = new URL(backgroundImageUrl);
-          saveImage(backgroundURL, backgroundImageFile);
-          Log.e(TAG, backgroundImageFile.toString());
-          Intent intent = new Intent("com.instagram.share.ADD_TO_STORY");
-          intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      final String backgroundImageUrl = args.getString(0);
+      final String attributionLinkUrl = args.getString(1);
+      Thread t = new Thread(() -> {
+        if (isPackageInstalled("com.instagram.android", pm)) {
+          try {
+            Log.e(TAG, "WE HAVE A BACKGROUND");
+            File parentDir = this.webView.getContext().getExternalFilesDir(null);
+            File backgroundImageFile = File.createTempFile("instagramBackground", ".png", parentDir);
+            Log.e(TAG, backgroundImageUrl.toString());
+            URL backgroundURL = new URL(backgroundImageUrl);
+            saveImage(backgroundURL, backgroundImageFile);
+            Log.e(TAG, backgroundImageFile.toString());
+            Intent intent = new Intent("com.instagram.share.ADD_TO_STORY");
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-          FileProvider FileProvider = new FileProvider();
-          Uri backgroundUri = FileProvider.getUriForFile(this.cordova.getActivity().getBaseContext(), this.cordova.getActivity().getBaseContext().getPackageName() + ".provider" ,backgroundImageFile);
-          intent.setDataAndType(backgroundUri, "image/*");
-          if(attributionLinkUrl != null && attributionLinkUrl.isEmpty()) {
-            intent.putExtra("content_url", attributionLinkUrl);
+            FileProvider FileProvider = new FileProvider();
+            Uri backgroundUri = FileProvider.getUriForFile(this.cordova.getActivity().getBaseContext(), this.cordova.getActivity().getBaseContext().getPackageName() + ".provider" ,backgroundImageFile);
+            intent.setDataAndType(backgroundUri, "image/*");
+            if(attributionLinkUrl != null && attributionLinkUrl.isEmpty()) {
+              intent.putExtra("content_url", attributionLinkUrl);
+            }
+            Activity activity = this.cordova.getActivity();
+            activity.grantUriPermission("com.instagram.android", backgroundUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            activity.startActivityForResult(intent, 0);
+            callbackContext.success("Shared successfully.");
+          } catch (Exception e) {
+            callbackContext.error("Something went wrong.");
+            e.printStackTrace();
           }
-          Activity activity = this.cordova.getActivity();
-          activity.grantUriPermission("com.instagram.android", backgroundUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          activity.startActivityForResult(intent, 0);
-          callbackContext.success("shared");
-        } catch (Exception e) {
-          callbackContext.error("Something went wrong.");
-          e.printStackTrace();
+        } else {
+          callbackContext.error("Instagram is not installed.");
         }
-      } else {
-        callbackContext.error("Instagram is not installed.");
-      }
+      });
+      t.start();
     }
     return true;
   }
