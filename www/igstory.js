@@ -5,7 +5,7 @@ var PLUGIN_NAME = 'IGStory';
 
 var IGStory = {
   shareToStory: function(opts, cb, err) {
-    exec(cb, err, PLUGIN_NAME, 'shareToStory', [opts.backgroundImage, opts.attributionURL]);
+    exec(cb, err, PLUGIN_NAME, 'shareToStory', [opts.backgroundImage, opts.attributionURL, opts.imageUrl]);
   }
 };
 

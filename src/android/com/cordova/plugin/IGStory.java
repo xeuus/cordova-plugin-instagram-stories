@@ -34,6 +34,7 @@ public class IGStory extends CordovaPlugin {
       PackageManager pm = this.cordova.getActivity().getBaseContext().getPackageManager();
       final String backgroundImageUrl = args.getString(0);
       final String attributionLinkUrl = args.getString(1);
+      final String imageUrl = args.getString(2);
       Thread t = new Thread(() -> {
         if (isPackageInstalled("com.instagram.android", pm)) {
           try {
