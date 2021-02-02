@@ -11,15 +11,21 @@ import java.io.ByteArrayOutputStream;
 
 import android.util.Log;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import android.net.Uri;
 import android.content.Intent;
 import android.app.Activity;
+
+import java.io.OutputStream;
 import java.net.URL;
 import java.io.File;
 import java.io.IOException;
 import androidx.core.content.FileProvider;
 import java.io.InputStream;
+import java.nio.channels.FileChannel;
+import java.util.Objects;
 
 public class IGStory extends CordovaPlugin {
   private static final String TAG = "IGStory";
@@ -28,7 +34,43 @@ public class IGStory extends CordovaPlugin {
   public void initialize(CordovaInterface cordova, CordovaWebView webView) {
     super.initialize(cordova, webView);
   }
+  private void moveFile(String inputPath, String outputPath) {
 
+    InputStream in = null;
+    OutputStream out = null;
+    try {
+
+      //create output directory if it doesn't exist
+      File dir = new File (outputPath);
+
+
+      in = new FileInputStream(inputPath);
+      out = new FileOutputStream(outputPath);
+
+      byte[] buffer = new byte[1024];
+      int read;
+      while ((read = in.read(buffer)) != -1) {
+        out.write(buffer, 0, read);
+      }
+      in.close();
+      in = null;
+
+      // write the output file
+      out.flush();
+      out.close();
+      out = null;
+
+
+    }
+
+    catch (FileNotFoundException fnfe1) {
+      Log.e("tag", fnfe1.getMessage());
+    }
+    catch (Exception e) {
+      Log.e("tag", e.getMessage());
+    }
+
+  }
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
     if (action.equals("shareToStory")) {
       PackageManager pm = this.cordova.getActivity().getBaseContext().getPackageManager();
@@ -38,13 +80,25 @@ public class IGStory extends CordovaPlugin {
       Thread t = new Thread(() -> {
         if (isPackageInstalled("com.instagram.android", pm)) {
           try {
+            File backgroundImageFile = null;
             Log.e(TAG, "WE HAVE A BACKGROUND");
-            File parentDir = this.webView.getContext().getExternalFilesDir(null);
-            File backgroundImageFile = File.createTempFile("instagramBackground", ".png", parentDir);
-            Log.e(TAG, backgroundImageUrl.toString());
-            URL backgroundURL = new URL(backgroundImageUrl);
-            saveImage(backgroundURL, backgroundImageFile);
-            Log.e(TAG, backgroundImageFile.toString());
+            if(imageUrl != null && !imageUrl.isEmpty()) {
+              File parentDir = this.webView.getContext().getExternalFilesDir(null);
+              String destFile = parentDir.getAbsoluteFile()+"/instagramBackground.jpg";
+              FileOutputStream fos = new FileOutputStream(destFile);
+              byte[] decodedString = android.util.Base64.decode(imageUrl, android.util.Base64.DEFAULT);
+              fos.write(decodedString);
+              fos.flush();
+              fos.close();
+              backgroundImageFile = new File(destFile);
+            }else{
+              File parentDir = this.webView.getContext().getExternalFilesDir(null);
+              backgroundImageFile = File.createTempFile("instagramBackground", ".png", parentDir);
+              Log.e(TAG, backgroundImageUrl);
+              URL backgroundURL = new URL(backgroundImageUrl);
+              saveImage(backgroundURL, backgroundImageFile);
+              Log.e(TAG, backgroundImageFile.toString());
+            }
             Intent intent = new Intent("com.instagram.share.ADD_TO_STORY");
             intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
